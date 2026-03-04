@@ -6,6 +6,9 @@ package frc.robot.subsystems;
 
 import java.util.function.DoubleSupplier;
 
+import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonUtils;
+
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -16,6 +19,7 @@ import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import org.photonvision.*;
 import static frc.robot.Constants.DriveConstants.*;
 
 public class CANDriveSubsystem extends SubsystemBase {
@@ -25,7 +29,7 @@ public class CANDriveSubsystem extends SubsystemBase {
   private final SparkMax rightFollower;
 
   private final DifferentialDrive drive;
-
+  PhotonCamera camera = new PhotonCamera("photonvision");
   public CANDriveSubsystem() {
     // create brushed motors for drive
     leftLeader = new SparkMax(LEFT_LEADER_ID, MotorType.kBrushed);
@@ -78,5 +82,32 @@ public class CANDriveSubsystem extends SubsystemBase {
   public Command driveArcade(DoubleSupplier xSpeed, DoubleSupplier zRotation) {
     return this.run(
         () -> drive.arcadeDrive(xSpeed.getAsDouble(), zRotation.getAsDouble()));
+  }
+
+  public void autoAlign(){
+     // Read in relevant data from the Camera
+        boolean targetVisible = false;
+        double targetYaw = 0.0;
+        var results = camera.getAllUnreadResults();
+        if (!results.isEmpty()) {
+            // Camera processed a new frame since last
+            // Get the last one in the list.
+            var result = results.get(results.size() - 1);
+            if (result.hasTargets()) {
+                // At least one AprilTag was seen by the camera
+                for (var target : result.getTargets()) {
+                    if (target.getFiducialId() == 9) {
+                        // Found Tag 9, record its information
+                        targetYaw = target.getYaw();
+                        targetVisible = true;
+                    }
+                }
+            }
+        }
+        turn = -1.0 * targetYaw * VISION_TURN_kP * Constants.Swerve.kMaxAngularSpeed;
+  }
+
+  public Command autoAlignCommand() {
+    return this.run(() -> autoAlign());
   }
 }
