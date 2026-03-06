@@ -104,7 +104,7 @@ public class CANDriveSubsystem extends SubsystemBase {
                 }
             }
         }
-        turn = -1.0 * targetYaw * VISION_TURN_kP * Constants.Swerve.kMaxAngularSpeed;
+        //turn = -1.0 * targetYaw * VISION_TURN_kP * Constants.Swerve.kMaxAngularSpeed;
   }
 
   public Command autoAlignCommand() {
