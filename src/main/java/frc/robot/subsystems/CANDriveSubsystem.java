@@ -15,7 +15,10 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -29,7 +32,11 @@ public class CANDriveSubsystem extends SubsystemBase {
   private final SparkMax rightFollower;
 
   private final DifferentialDrive drive;
-  PhotonCamera camera = new PhotonCamera("photonvision");
+
+  PhotonCamera camera = new PhotonCamera("photonvision"); //create camera
+  PIDController drivePid = new PIDController(0.4, 0, 0); //PID loop for range
+  PIDController turnPid = new PIDController(0.1, 0, 0);  //PID loop for rotation
+
   public CANDriveSubsystem() {
     // create brushed motors for drive
     leftLeader = new SparkMax(LEFT_LEADER_ID, MotorType.kBrushed);
@@ -84,10 +91,13 @@ public class CANDriveSubsystem extends SubsystemBase {
         () -> drive.arcadeDrive(xSpeed.getAsDouble(), zRotation.getAsDouble()));
   }
 
-  public void autoAlign(){
+    public void autoAlign(){
      // Read in relevant data from the Camera
-        boolean targetVisible = false;
         double targetYaw = 0.0;
+        double targetRange = 0.0;
+        double forward;
+        double turn;
+        boolean targetVisible=false;
         var results = camera.getAllUnreadResults();
         if (!results.isEmpty()) {
             // Camera processed a new frame since last
@@ -96,17 +106,28 @@ public class CANDriveSubsystem extends SubsystemBase {
             if (result.hasTargets()) {
                 // At least one AprilTag was seen by the camera
                 for (var target : result.getTargets()) {
-                    if (target.getFiducialId() == 9) {
-                        // Found Tag 9, record its information
+                    if (target.getFiducialId()== 10 || target.getFiducialId()==26) {
+                        //Found Tag 9, record its information
                         targetYaw = target.getYaw();
-                        targetVisible = true;
+                        targetRange =
+                                PhotonUtils.calculateDistanceToTargetMeters(
+                                        0.5, // Measured with a tape measure, or in CAD.
+                                        1.123, // From 2024 game manual for ID 7
+                                        Units.degreesToRadians(15.0), // Measured with a protractor, or in CAD.
+                                        Units.degreesToRadians(target.getPitch()));
+
+                        SmartDashboard.putNumber("Yaw to target", targetYaw);
+                        SmartDashboard.putNumber("Dist to target", targetRange);
+                        forward = -1* drivePid.calculate(0.7-targetRange,0);
+                        turn = 0.4 * turnPid.calculate(targetYaw,0);
+                       
+                        drive.arcadeDrive(forward, turn);
+
                     }
                 }
             }
         }
-        //turn = -1.0 * targetYaw * VISION_TURN_kP * Constants.Swerve.kMaxAngularSpeed;
-  }
-
+    }
   public Command autoAlignCommand() {
     return this.run(() -> autoAlign());
   }

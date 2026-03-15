@@ -72,14 +72,17 @@ public class RobotContainer {
         .whileTrue(ballSubsystem.spinUpCommand().withTimeout(SPIN_UP_SECONDS)
             .andThen(ballSubsystem.launchCommand())
             .finallyDo(() -> ballSubsystem.stop()));
+            
     // While the A button is held on the operator controller, eject fuel back out
     // the intake
     operatorController.a()
         .whileTrue(ballSubsystem.runEnd(() -> ballSubsystem.eject(), () -> ballSubsystem.stop()));
 
-
+    //Press the Y button to run robot auto align to AprilTag
     operatorController.y()
-        .whileTrue(driveSubsystem.run(() -> driveSubsystem.autoAlignCommand()));
+        .whileTrue(driveSubsystem.autoAlignCommand() 
+        .finallyDo(()->driveSubsystem.driveArcade(()->0,()->0)));
+
     // Set the default command for the drive subsystem to the command provided by
     // factory with the values provided by the joystick axes on the driver
     // controller. The Y axis of the controller is inverted so that pushing the
