@@ -15,8 +15,18 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -33,9 +43,19 @@ public class CANDriveSubsystem extends SubsystemBase {
 
   private final DifferentialDrive drive;
 
+  //Camera Setup
   PhotonCamera camera = new PhotonCamera("photonvision"); //create camera
   PIDController drivePid = new PIDController(0.4, 0, 0); //PID loop for range
   PIDController turnPid = new PIDController(0.1, 0, 0);  //PID loop for rotation
+  Translation3d robotToCameraTrl = new Translation3d(-0.1, 0, 0.5); //Measure on robot
+  Rotation3d robotToCameraRot = new Rotation3d(0, Math.toRadians(-15), Math.toRadians(180)); //Measure on Robot
+  Transform3d robotToCamera = new Transform3d(robotToCameraTrl, robotToCameraRot); //Set Robot to camera transform
+  Pose2d BlueHubPose = new Pose2d(4.62,4.03,new Rotation2d().fromDegrees(0)); //Position of Blue Hub
+  Pose2d RedHubPose = new Pose2d(11.91,4.03,new Rotation2d().fromDegrees(180)); //Posirion of Red Hub
+  AprilTagFieldLayout tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
+
+  //Publish 3d robot position to Network Table
+  StructPublisher<Pose3d> pubPose = NetworkTableInstance.getDefault().getStructTopic("robotPose3D",Pose3d.struct).publish();
 
   public CANDriveSubsystem() {
     // create brushed motors for drive
@@ -93,12 +113,17 @@ public class CANDriveSubsystem extends SubsystemBase {
 
     public void autoAlign(){
      // Read in relevant data from the Camera
+        boolean PoseEstEnable = true; //0 = align to apriltag, 1=Pose estimation
         double targetYaw = 0.0;
         double targetRange = 0.0;
-        double forward;
-        double turn;
-        boolean targetVisible=false;
+        Rotation2d PoseTargetYaw =  new Rotation2d(0); 
+        double PoseTargetRange = 0.0;
+        double PoseYaw;
+        double forward = 0.0;
+        double turn = 0.0;
+        boolean ReadyToAlign=false;
         var results = camera.getAllUnreadResults();
+
         if (!results.isEmpty()) {
             // Camera processed a new frame since last
             // Get the last one in the list.
@@ -106,8 +131,37 @@ public class CANDriveSubsystem extends SubsystemBase {
             if (result.hasTargets()) {
                 // At least one AprilTag was seen by the camera
                 for (var target : result.getTargets()) {
-                    if (target.getFiducialId()== 10 || target.getFiducialId()==26) {
-                        //Found Tag 9, record its information
+                    if (PoseEstEnable == true){
+                      Pose3d robotPose3d = PhotonUtils.estimateFieldToRobotAprilTag(target.getBestCameraToTarget(), tagLayout.getTagPose(target.getFiducialId()).get(), robotToCamera);
+                      Pose2d robotPose2d = robotPose3d.toPose2d();
+                      pubPose.set(robotPose3d);
+                      if (target.getFiducialId()>23 && target.getFiducialId()<28) {
+                        PoseTargetYaw = PhotonUtils.getYawToPose(robotPose2d, BlueHubPose);
+                        PoseTargetRange = PhotonUtils.getDistanceToPose(robotPose2d, BlueHubPose);
+                        ReadyToAlign = true;
+                      }
+                      if (target.getFiducialId()>7 && target.getFiducialId()<12) {
+                        PoseTargetYaw  = PhotonUtils.getYawToPose(robotPose2d, RedHubPose);
+                        PoseTargetRange = PhotonUtils.getDistanceToPose(robotPose2d, RedHubPose);
+                        ReadyToAlign = true;
+                      }
+
+                      //Find Rotation from center of hub
+                      PoseYaw = 180-PoseTargetYaw.getDegrees();
+                      if (PoseTargetYaw.getDegrees()<0){
+                        PoseYaw = (-PoseTargetYaw.getDegrees()-180);
+                      }
+
+                      if(ReadyToAlign == true){
+                        forward = -1 * drivePid.calculate(1.5-PoseTargetRange,0);
+                        turn = turnPid.calculate(PoseYaw,0);
+                    }
+                    }
+                    if (PoseEstEnable == false){
+
+                    
+                      if (target.getFiducialId()== 10 || target.getFiducialId()==26) {
+                        //Found Hub center tag, record its information
                         targetYaw = target.getYaw();
                         targetRange =
                                 PhotonUtils.calculateDistanceToTargetMeters(
@@ -120,10 +174,11 @@ public class CANDriveSubsystem extends SubsystemBase {
                         SmartDashboard.putNumber("Dist to target", targetRange);
                         forward = -1* drivePid.calculate(0.7-targetRange,0);
                         turn = 0.4 * turnPid.calculate(targetYaw,0);
-                       
-                        drive.arcadeDrive(forward, turn);
+                      }
+                        
 
                     }
+                    drive.arcadeDrive(forward, turn); //drive based on results
                 }
             }
         }
