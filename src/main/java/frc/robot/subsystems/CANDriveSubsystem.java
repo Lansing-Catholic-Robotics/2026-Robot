@@ -17,6 +17,7 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -47,8 +48,8 @@ public class CANDriveSubsystem extends SubsystemBase {
   PhotonCamera camera = new PhotonCamera("photonvision"); //create camera
   PIDController drivePid = new PIDController(0.4, 0, 0); //PID loop for range
   PIDController turnPid = new PIDController(0.1, 0, 0);  //PID loop for rotation
-  Translation3d robotToCameraTrl = new Translation3d(-0.1, 0, 0.5); //Measure on robot
-  Rotation3d robotToCameraRot = new Rotation3d(0, Math.toRadians(-15), Math.toRadians(180)); //Measure on Robot
+  Translation3d robotToCameraTrl = new Translation3d(-0.2, 0, 0.2); //Measure on robot
+  Rotation3d robotToCameraRot = new Rotation3d(0, Math.toRadians(-45), Math.toRadians(180)); //Measure on Robot
   Transform3d robotToCamera = new Transform3d(robotToCameraTrl, robotToCameraRot); //Set Robot to camera transform
   Pose2d BlueHubPose = new Pose2d(4.62,4.03,new Rotation2d().fromDegrees(0)); //Position of Blue Hub
   Pose2d RedHubPose = new Pose2d(11.91,4.03,new Rotation2d().fromDegrees(180)); //Posirion of Red Hub
@@ -153,8 +154,8 @@ public class CANDriveSubsystem extends SubsystemBase {
                       }
 
                       if(ReadyToAlign == true){
-                        forward = -1 * drivePid.calculate(1.5-PoseTargetRange,0);
-                        turn = turnPid.calculate(PoseYaw,0);
+                        forward = -1 * drivePid.calculate(1.1-PoseTargetRange,0);
+                        turn = MathUtil.clamp(turnPid.calculate(PoseYaw,0), -0.5, 0.5);
                     }
                     }
                     if (PoseEstEnable == false){
