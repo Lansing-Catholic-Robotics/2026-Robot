@@ -154,8 +154,8 @@ public class CANDriveSubsystem extends SubsystemBase {
                       }
 
                       if(ReadyToAlign == true){
-                        forward = -1 * drivePid.calculate(1.1-PoseTargetRange,0);
-                        turn = MathUtil.clamp(turnPid.calculate(PoseYaw,0), -0.5, 0.5);
+                        forward = -1 * MathUtil.clamp(drivePid.calculate(1.1-PoseTargetRange,0),-0.6,0.6);
+                        turn = MathUtil.clamp(turnPid.calculate(PoseYaw,0), -0.4, 0.4);
                     }
                     }
                     if (PoseEstEnable == false){
