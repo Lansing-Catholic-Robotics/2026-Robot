@@ -5,6 +5,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -48,6 +49,8 @@ public class RobotContainer {
     // add additional auto modes you can add additional lines here with
     // autoChooser.addOption
     autoChooser.setDefaultOption("Autonomous", Autos.exampleAuto(driveSubsystem, ballSubsystem));
+    autoChooser.addOption("otherAutonomous", Autos.otherexampleAuto(driveSubsystem, ballSubsystem));
+    SmartDashboard.putData("Autochoices", autoChooser);
   }
 
   /**
@@ -92,7 +95,9 @@ public class RobotContainer {
     // are also scaled down so the rotation is more easily controllable.
     driveSubsystem.setDefaultCommand(
         driveSubsystem.driveArcade(
-            () -> -driverController.getLeftY() * DRIVE_SCALING,
+            // if leftbumper(top left trigger) is pressed go fast.
+            //while still checking for movment and rotation inputs.
+            () -> -driverController.getLeftY() * (driverController.getHID().getLeftBumperButton()?1:DRIVE_SCALING),
             () -> -driverController.getRightX() * ROTATION_SCALING));
   }
 
