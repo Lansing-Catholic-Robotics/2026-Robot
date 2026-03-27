@@ -45,11 +45,11 @@ public final class Autos {
         // Stop running the launcher
         ballSubsystem.runOnce(() -> ballSubsystem.stop()),
         //rotate
-        driveSubsystem.driveArcade(() -> 0, () -> 0.4).withTimeout(1),
+        driveSubsystem.driveArcade(() -> 0, () -> 0.6).withTimeout(1.45),
         //start intake
         ballSubsystem.intakeCommand().withTimeout(1),
         //move forward
-        driveSubsystem.driveArcade(() -> 1, () -> 0).withTimeout(1),
+        driveSubsystem.driveArcade(() -> 0.6, () -> -0.4).withTimeout(3),
         //stop moving forward
         driveSubsystem.driveArcade(() -> 0, () -> 0).withTimeout(1),
         //stop intake
