@@ -28,36 +28,7 @@ public final class Autos {
         // Stop running the launcher
         ballSubsystem.runOnce(() -> ballSubsystem.stop()));
   }
-   public static final Command otherexampleAuto(CANDriveSubsystem driveSubsystem, CANFuelSubsystem ballSubsystem) {
-    return new SequentialCommandGroup(
-        // Drive backwards for .25 seconds. The driveArcadeAuto command factory
-        // creates a command which does not end which allows us to control
-        // the timing using the withTimeout decorator
-        driveSubsystem.driveArcade(() -> 0.5, () -> 0).withTimeout(1),
-
-        //Run autoalign command for 5 seconds to align robot with hopper
-        driveSubsystem.autoAlignCommand().withTimeout(5),
-
-        // Spin up the launcher for 1 second and then launch balls for 9 seconds, for a
-        // total of 10 seconds
-        ballSubsystem.spinUpCommand().withTimeout(1),
-        ballSubsystem.launchCommand().withTimeout(8),
-        // Stop running the launcher
-        ballSubsystem.runOnce(() -> ballSubsystem.stop()),
-        //rotate
-        driveSubsystem.driveArcade(() -> 0, () -> 0.6).withTimeout(1.45),
-        //start intake
-        ballSubsystem.intakeCommand().withTimeout(1),
-        //move forward
-        driveSubsystem.driveArcade(() -> 0.6, () -> -0.4).withTimeout(3),
-        //stop moving forward
-        driveSubsystem.driveArcade(() -> 0, () -> 0).withTimeout(1),
-        //stop intake
-        ballSubsystem.runOnce(() -> ballSubsystem.stop()));
-
-
-  }
-
+  
 }
 
 
