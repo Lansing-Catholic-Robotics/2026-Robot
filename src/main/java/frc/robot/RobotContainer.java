@@ -99,7 +99,7 @@ public class RobotContainer {
         driveSubsystem.driveArcade(
             // if leftbumper(top left trigger) is pressed go fast.
             //while still checking for movment and rotation inputs.
-            () -> -driverController.getLeftY() * ((driverController.getHID().getRightTriggerAxis()>0.5)?1:DRIVE_SCALING),
+            () -> -driverController.getLeftY() * ((driverController.getHID().getRightTriggerAxis()>0.5)?0.5:DRIVE_SCALING),
             () -> -driverController.getRightX() * ROTATION_SCALING));
   }
 
